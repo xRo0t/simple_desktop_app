@@ -1,0 +1,65 @@
+import eqoi
+
+app: EqoiApp = EqoiApp.create("Eqoi Framework", 820, 560)
+if app.is_valid() == 0:
+    print("failed to create Eqoi app")
+else:
+    # State — owned and auto-freed by the app.
+    click_count: i32 = 0
+    dark:     i64 = app.alloc_bool(0)
+    autosave: i64 = app.alloc_bool(1)
+    notify:   i64 = app.alloc_bool(1)
+    volume:   i64 = app.alloc_int(40)
+    name:     i64 = app.alloc_buf(60)
+
+    while app.running():
+        if app.begin() == 1:
+            # --- Header ---
+            app.title(32, 28, "Eqoi Framework")
+            app.muted_label(32, 68, "Widgets built on a pure software renderer.")
+
+            # --- Controls panel ---
+            app.panel(32, 104, 360, 360)
+            app.label(48, 124, "Controls")
+
+            app.checkbox(48, 156, "Enable darkness", dark)
+            app.checkbox(48, 184, "Auto-save session", autosave)
+
+            app.label(48, 220, "Notifications")
+            app.toggle(200, 218, "enabled", notify)
+
+            app.label(48, 256, "Volume")
+            app.slider(48, 280, 320, 0, 100, volume)
+            app.label(48, 306, Str.concat("level: ", Convert.i32_to_str(app.get_int(volume))))
+
+            app.label(48, 340, "Progress")
+            app.progress_bar(48, 360, 320, 16, app.get_int(volume))
+
+            app.label(48, 388, "Your name")
+            app.text_input(48, 408, 320, 30, name, 60)
+
+            # --- Actions panel ---
+            app.panel(420, 104, 360, 360)
+            app.label(436, 124, "Actions")
+
+            if app.button(436, 152, 220, 42, "Increment") == 1:
+                click_count = click_count + 1
+            app.tooltip(app.widget_id(110, 436, 152), "Bumps the counter")
+
+            if app.secondary_button(436, 204, 220, 42, "Reset") == 1:
+                click_count = 0
+            app.tooltip(app.widget_id(111, 436, 204), "Resets to zero")
+
+            app.label(436, 260, "Count")
+            app.label(512, 260, Convert.i32_to_str(click_count))
+
+            app.muted_label(436, 300, "Hover a button for 500ms")
+            app.muted_label(436, 320, "to see a tooltip.")
+
+            # --- Footer ---
+            app.separator(32, 494, 756)
+            app.muted_label(32, 512, "Eqoi owns the app loop, widgets, theme, and rendering frame.")
+
+            app.end()
+
+    app.destroy()
