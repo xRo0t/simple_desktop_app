@@ -1,64 +1,134 @@
 import eqoi
 
-app: EqoiApp = EqoiApp.create("Eqoi Framework", 820, 560)
+app: EqoiApp = EqoiApp.create("Eqoi Framework", 900, 620)
 if app.is_valid() == 0:
     print("failed to create Eqoi app")
 else:
-    # State — owned and auto-freed by the app.
     click_count: i32 = 0
-    dark:     i64 = app.alloc_bool(0)
-    autosave: i64 = app.alloc_bool(1)
-    notify:   i64 = app.alloc_bool(1)
-    volume:   i64 = app.alloc_int(40)
-    name:     i64 = app.alloc_buf(60)
+    active_tab:  i64 = app.alloc_int(0)
+    dark:        i64 = app.alloc_bool(0)
+    notify:      i64 = app.alloc_bool(1)
+    volume:      i64 = app.alloc_int(40)
+    name:        i64 = app.alloc_buf(60)
+    scroll_y:    i64 = app.alloc_int(0)
+    selected:    i64 = app.alloc_int(0)
+    modal_open:  i64 = app.alloc_bool(0)
+    dropped_msg: i64 = app.alloc_buf(64)
 
     while app.running():
         if app.begin() == 1:
-            # --- Header ---
-            app.title(32, 28, "Eqoi Framework")
-            app.muted_label(32, 68, "Widgets built on a pure software renderer.")
+            app.title(28, 24, "Eqoi Framework")
 
-            # --- Controls panel ---
-            app.panel(32, 104, 360, 360)
-            app.label(48, 124, "Controls")
+            # Tab bar
+            app.tab_bar_begin(28, 68, 840, 38, active_tab)
+            app.tab_bar_item("Form", 140)
+            app.tab_bar_item("Scroll + Dropdown", 200)
+            app.tab_bar_item("Drag / Drop", 160)
+            app.tab_bar_end()
+            current: i32 = app.get_int(active_tab)
 
-            app.checkbox(48, 156, "Enable darkness", dark)
-            app.checkbox(48, 184, "Auto-save session", autosave)
+            # --- Tab 1: form inside a responsive panel ---
+            if current == 0:
+                app.panel_begin(28, 124, 840, 460)
+                app.label(48, 144, "Account")
+                app.checkbox(48, 180, "Dark mode", dark)
+                app.label(48, 220, "Notifications")
+                app.toggle(200, 218, "on", notify)
+                app.label(48, 256, "Volume")
+                app.slider(48, 280, 360, 0, 100, volume)
+                app.label(48, 308, Str.concat("level: ", Convert.i32_to_str(app.get_int(volume))))
+                app.label(48, 340, "Progress")
+                app.progress_bar(48, 362, 360, 14, app.get_int(volume))
+                app.label(48, 394, "Your name")
+                app.text_input(48, 414, 360, 30, name, 60)
+                if app.button(48, 460, 160, 40, "Open modal") == 1:
+                    app.set_bool(modal_open, 1)
+                app.panel_end()
 
-            app.label(48, 220, "Notifications")
-            app.toggle(200, 218, "enabled", notify)
+            # --- Tab 2: scrollable list + dropdown ---
+            if current == 1:
+                app.panel_begin(28, 124, 840, 460)
+                app.label(48, 144, "Language")
+                sel_idx: i32 = app.get_int(selected)
+                lang_label: str = "English"
+                if sel_idx == 1:
+                    lang_label = "Arabic"
+                if sel_idx == 2:
+                    lang_label = "French"
+                if sel_idx == 3:
+                    lang_label = "Spanish"
+                if app.dropdown_begin(48, 170, 240, 32, selected, lang_label) == 1:
+                    app.dropdown_item("English")
+                    app.dropdown_item("Arabic")
+                    app.dropdown_item("French")
+                    app.dropdown_item("Spanish")
+                    app.dropdown_end()
 
-            app.label(48, 256, "Volume")
-            app.slider(48, 280, 320, 0, 100, volume)
-            app.label(48, 306, Str.concat("level: ", Convert.i32_to_str(app.get_int(volume))))
+                app.label(48, 226, "Scrollable list (wheel or drag)")
+                app.scrollable_begin(48, 250, 400, 300, scroll_y, 3200)
+                sy: i32 = app.get_int(scroll_y)
+                i: i32 = 0
+                while i < 100:
+                    iy: i32 = 250 + 10 + i * 30 - sy
+                    if iy > 240 and iy < 570:
+                        app.label(68, iy, Str.concat("Item ", Convert.i32_to_str(i + 1)))
+                    i = i + 1
+                app.scrollable_end()
+                app.panel_end()
 
-            app.label(48, 340, "Progress")
-            app.progress_bar(48, 360, 320, 16, app.get_int(volume))
+            # --- Tab 3: drag/drop ---
+            if current == 2:
+                app.panel_begin(28, 124, 840, 460)
+                app.label(48, 144, "Drag an item to the target")
+                app.secondary_button(48, 180, 160, 40, "Apple")
+                app.drag_source(48, 180, 160, 40, 1 as i64)
+                app.secondary_button(48, 230, 160, 40, "Banana")
+                app.drag_source(48, 230, 160, 40, 2 as i64)
+                app.secondary_button(48, 280, 160, 40, "Cherry")
+                app.drag_source(48, 280, 160, 40, 3 as i64)
 
-            app.label(48, 388, "Your name")
-            app.text_input(48, 408, 320, 30, name, 60)
+                app.label(520, 180, "Drop zone")
+                app.panel(520, 200, 300, 260)
+                dropped: i64 = app.drop_target(520, 200, 300, 260)
+                if dropped == 1 as i64:
+                    Memory.write_i8(dropped_msg, 65)
+                    Memory.write_i8(dropped_msg + 1, 112)
+                    Memory.write_i8(dropped_msg + 2, 112)
+                    Memory.write_i8(dropped_msg + 3, 108)
+                    Memory.write_i8(dropped_msg + 4, 101)
+                    Memory.write_i8(dropped_msg + 5, 0)
+                elif dropped == 2 as i64:
+                    Memory.write_i8(dropped_msg, 66)
+                    Memory.write_i8(dropped_msg + 1, 97)
+                    Memory.write_i8(dropped_msg + 2, 110)
+                    Memory.write_i8(dropped_msg + 3, 97)
+                    Memory.write_i8(dropped_msg + 4, 110)
+                    Memory.write_i8(dropped_msg + 5, 97)
+                    Memory.write_i8(dropped_msg + 6, 0)
+                elif dropped == 3 as i64:
+                    Memory.write_i8(dropped_msg, 67)
+                    Memory.write_i8(dropped_msg + 1, 104)
+                    Memory.write_i8(dropped_msg + 2, 101)
+                    Memory.write_i8(dropped_msg + 3, 114)
+                    Memory.write_i8(dropped_msg + 4, 114)
+                    Memory.write_i8(dropped_msg + 5, 121)
+                    Memory.write_i8(dropped_msg + 6, 0)
+                msg_str: str = dropped_msg as str
+                if Memory.strlen(msg_str) > 0:
+                    app.label(540, 330, Str.concat("Dropped: ", msg_str))
+                app.panel_end()
 
-            # --- Actions panel ---
-            app.panel(420, 104, 360, 360)
-            app.label(436, 124, "Actions")
-
-            if app.button(436, 152, 220, 42, "Increment") == 1:
-                click_count = click_count + 1
-            app.tooltip(app.widget_id(110, 436, 152), "Bumps the counter")
-
-            if app.secondary_button(436, 204, 220, 42, "Reset") == 1:
-                click_count = 0
-            app.tooltip(app.widget_id(111, 436, 204), "Resets to zero")
-
-            app.label(436, 260, "Count")
-            app.label(512, 260, Convert.i32_to_str(click_count))
-
-            app.muted_label(436, 300, "Hover a button for 500ms")
-            app.muted_label(436, 320, "to see a tooltip.")
-
-            # --- Footer ---
-            app.separator(32, 494, 756)
-            app.muted_label(32, 512, "Eqoi owns the app loop, widgets, theme, and rendering frame.")
+            # --- Modal (drawn on top; auto-centers on canvas) ---
+            if app.get_bool(modal_open) == 1:
+                if app.modal_begin(360, 180, "Confirm") == 1:
+                    cx: i32 = app.width / 2
+                    cy: i32 = app.height / 2
+                    app.label(cx - 110, cy - 15, "Click OK or Cancel to close.")
+                    if app.button(cx - 110, cy + 20, 100, 36, "OK") == 1:
+                        app.set_bool(modal_open, 0)
+                    if app.secondary_button(cx + 10, cy + 20, 100, 36, "Cancel") == 1:
+                        app.set_bool(modal_open, 0)
+                    app.modal_end()
 
             app.end()
 
