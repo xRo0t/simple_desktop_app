@@ -36,7 +36,7 @@ else:
                 app.toggle(200, 218, "on", notify)
                 app.label(48, 256, "Volume")
                 app.slider(48, 280, 360, 0, 100, volume)
-                app.label(48, 308, Str.concat("level: ", Convert.i32_to_str(app.get_int(volume))))
+                app.label(48, 308, "level: " + Convert.i32_to_str(app.get_int(volume)))
                 app.label(48, 340, "Progress")
                 app.progress_bar(48, 362, 360, 14, app.get_int(volume))
                 app.label(48, 394, "Your name")
@@ -71,7 +71,7 @@ else:
                 while i < 100:
                     iy: i32 = 250 + 10 + i * 30 - sy
                     if iy > 240 and iy < 570:
-                        app.label(68, iy, Str.concat("Item ", Convert.i32_to_str(i + 1)))
+                        app.label(68, iy, "Item " + Convert.i32_to_str(i + 1))
                     i = i + 1
                 app.scrollable_end()
                 app.panel_end()
@@ -115,7 +115,7 @@ else:
                     Memory.write_i8(dropped_msg + 6, 0)
                 msg_str: str = dropped_msg as str
                 if Memory.strlen(msg_str) > 0:
-                    app.label(540, 330, Str.concat("Dropped: ", msg_str))
+                    app.label(540, 330, "Dropped: " + msg_str)
                 app.panel_end()
 
             # --- Modal (drawn on top; auto-centers on canvas) ---
